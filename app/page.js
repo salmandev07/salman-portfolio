@@ -512,11 +512,15 @@ const ControlledScene = ({ isDark }) => {
 
   const smooth = useSpring(rawProgress, { stiffness: 80, damping: 22, mass: 0.6 })
 
-  const imgOpacity = useTransform(smooth, [0, 1], [1, 0])
-  const imgY = useTransform(smooth, [0.25, 0.60], [0, 180])
-  const imgScale = useTransform(smooth, [0.25, 0.60], [1, 0.82])
-  const imgBlur = useTransform(smooth, [0.25, 0.60], [0, 30])
-  const imgFilter = useMotionTemplate`blur(${imgBlur}px)`
+  const imgOpacity = useTransform(smooth, [0.25, 0.55, 0.60, 1], [1, 0.2, 0, 0])
+  const imgScale = useTransform(smooth, [0, 0.20], [1.35, 1])
+  const imgBlur = useTransform(smooth, [0, 0.20], [35, 0])
+  const imgBrightness = useTransform(smooth, [0, 0.20], [0.3, 1])
+  const imgRotate = useTransform(smooth, [0, 0.20], [-5, 0])
+  const imgX = useTransform(smooth, [0.45, 0.70], [0, 80])
+  const cardOpacity = useTransform(smooth, [0.45, 0.70], [0, 1])
+  const cardY = useTransform(smooth, [0.45, 0.70], [20, 0])
+  const imgFilter = useMotionTemplate`blur(${imgBlur}px) brightness(${imgBrightness})`
 
   const badgeOpacity = useTransform(smooth, [0.40, 0.55], [0, 1])
   const badgeY = useTransform(smooth, [0.40, 0.55], [40, 0])
@@ -561,8 +565,15 @@ const ControlledScene = ({ isDark }) => {
       rawProgress.set(next)
       e.preventDefault()
       if (next >= 1) {
-        lockedRef.current = false
-        setIntercepting(false)
+        totalRef.current = 1
+        rawProgress.set(1)
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            lockedRef.current = false
+            setIntercepting(false)
+          })
+        })
       }
     }
 
@@ -578,8 +589,15 @@ const ControlledScene = ({ isDark }) => {
       rawProgress.set(next)
       e.preventDefault()
       if (next >= 1) {
-        lockedRef.current = false
-        setIntercepting(false)
+        totalRef.current = 1
+        rawProgress.set(1)
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            lockedRef.current = false
+            setIntercepting(false)
+          })
+        })
       }
     }
 
@@ -618,7 +636,7 @@ const ControlledScene = ({ isDark }) => {
 
   return (
     <>
-      <section id="home" style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden',
+      <section id="home" style={{ position: intercepting ? 'sticky' : 'relative', top: intercepting ? 0 : 'auto', height: '100dvh', overflow: 'hidden',
         background: isDark ? '#0a0a0a' : '#ffffff' }}>
 
         {/* Background ambient glow */}
@@ -682,7 +700,7 @@ const ControlledScene = ({ isDark }) => {
         </div>
 
         {/* Image layer (z-index: 2) */}
-        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, pointerEvents: 'none', opacity: imgOpacity, scale: imgScale, y: imgY, filter: imgFilter }}>
+        {intercepting && <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, pointerEvents: 'none', opacity: imgOpacity, scale: imgScale, x: imgX, rotate: imgRotate, filter: imgFilter }}>
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', inset: '-3rem', borderRadius: '9999px', pointerEvents: 'none',
               background: isDark ? 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(6,182,212,0.05) 40%, transparent 70%)' : 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.08) 40%, transparent 70%)', filter: 'blur(40px)' }} />
@@ -727,7 +745,7 @@ const ControlledScene = ({ isDark }) => {
               </div>
             </motion.div>
           </div>
-        </motion.div>
+        </motion.div>}
 
       </section>
 
