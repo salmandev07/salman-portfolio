@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react'
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring, useReducedMotion, useMotionTemplate } from 'framer-motion'
 import { Github, Linkedin, Mail, MapPin, ArrowRight, ArrowUpRight, Code2, Database, Cloud, Wrench, GraduationCap, Briefcase, Menu, X, Rocket, GitBranch, Brain, ArrowUp, Terminal, Heart, Server, Sun, Moon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -307,7 +307,7 @@ const Navbar = () => {
         scrolled ? 'backdrop-blur-md border-b shadow-sm' : ''
       }`}
       style={{ background: scrolled ? (isDark ? 'rgba(20,20,20,0.8)' : 'rgba(255,255,255,0.8)') : 'transparent', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
-      <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+      <div className="container mx-auto px-5 sm:px-6 flex items-center justify-between h-14 sm:h-16">
         <a href="#home" className="font-display font-bold text-lg text-tp">SK.</a>
         <div className="hidden md:flex items-center gap-8">
           {NAV_LINKS.map((l) => (
@@ -324,24 +324,37 @@ const Navbar = () => {
           </a>
           <a href="#contact" className="text-xs transition-colors duration-300 text-tm hover:text-tp">Contact</a>
         </div>
-        <div className="flex items-center gap-3 md:hidden">
-          <button onClick={toggle} className="p-2 rounded-full text-tm">
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        <div className="flex items-center gap-2 md:hidden">
+          <button onClick={toggle} className="p-2.5 -mr-1 rounded-full text-tm">
+            {theme === 'dark' ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
           </button>
-          <button onClick={() => setOpen(!open)} className="text-tm">
+          <button onClick={() => setOpen(!open)} className="p-2.5 -mr-1.5 rounded-xl text-tm" aria-label="Menu">
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, height: 0, filter: 'blur(2px)' }} animate={{ opacity: 1, height: 'auto', filter: 'blur(0px)' }} exit={{ opacity: 0, height: 0, filter: 'blur(2px)' }}
-            transition={SPRING_FAST}
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            transition={{ ...SPRING_FAST, opacity: { duration: 0.2 } }}
             className="md:hidden border-b overflow-hidden" style={{ background: isDark ? '#141414' : '#ffffff', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
-            <div className="px-6 py-4 flex flex-col gap-4">
-              {NAV_LINKS.map((l) => (
-                <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="text-sm transition-colors duration-300 text-tm">{l.label}</a>
+            <div className="px-5 py-5 flex flex-col gap-1">
+              {NAV_LINKS.map((l, i) => (
+                <motion.a key={l.href} href={l.href} onClick={() => setOpen(false)}
+                  initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04, duration: 0.2 }}
+                  className="text-sm py-2.5 px-3 rounded-lg transition-colors duration-200 text-tm hover:text-tp hover:bg-black/5 dark:hover:bg-white/5">{l.label}</motion.a>
               ))}
+              <div className="h-px my-2" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
+              <motion.a href="https://github.com/salmandev07" target="_blank" rel="noreferrer"
+                initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, duration: 0.2 }}
+                className="text-sm py-2.5 px-3 rounded-lg flex items-center gap-2 text-tm hover:text-tp hover:bg-black/5 dark:hover:bg-white/5">
+                <Github className="w-4 h-4" /> GitHub
+              </motion.a>
+              <motion.a href="#contact" onClick={() => setOpen(false)}
+                initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.24, duration: 0.2 }}
+                className="text-sm py-2.5 px-3 rounded-lg flex items-center gap-2 text-tm hover:text-tp hover:bg-black/5 dark:hover:bg-white/5">
+                <Mail className="w-4 h-4" /> Contact
+              </motion.a>
             </div>
           </motion.div>
         )}
@@ -353,26 +366,36 @@ const Navbar = () => {
 const Hero = () => {
   const { theme } = useTheme()
   const { scrollY } = useScroll()
-  const textYRaw = useTransform(scrollY, [0, 600], [0, 80])
-  const opacityRaw = useTransform(scrollY, [0, 400], [1, 0])
-  const profileTransformRaw = useTransform(scrollY, [0, 600], [0, -50])
-
-  const textY = textYRaw
-  const textOpacity = opacityRaw
-  const profileY = profileTransformRaw
   const isDark = theme === 'dark'
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+
+  const profileY = useTransform(scrollY, [0, 600], [0, -50])
+
+  if (isMobile) return (
+    <PinnedHero isDark={isDark} />
+  )
+
   return (
-    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 sm:pt-24 pb-8 sm:pb-12">
+    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-12">
       {/* Background ambient glow spots */}
-      <div className="absolute top-1/4 left-1/4 w-60 sm:w-80 h-60 sm:h-80 rounded-full blur-3xl pointer-events-none -z-10 transition-colors duration-700"
+      <div className="absolute top-1/4 left-1/4 w-48 sm:w-80 h-48 sm:h-80 rounded-full blur-3xl pointer-events-none -z-10 transition-colors duration-700"
         style={{ background: isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.1)' }} />
-      <div className="absolute bottom-1/3 right-1/4 w-72 sm:w-96 h-72 sm:h-96 rounded-full blur-3xl pointer-events-none -z-10 transition-colors duration-700"
+      <div className="absolute bottom-1/3 right-1/4 w-56 sm:w-96 h-56 sm:h-96 rounded-full blur-3xl pointer-events-none -z-10 transition-colors duration-700"
         style={{ background: isDark ? 'rgba(6,182,212,0.05)' : 'rgba(6,182,212,0.1)' }} />
       <Particles count={20} />
 
-      <motion.div style={{ y: textY, opacity: textOpacity, willChange: "transform, opacity" }} className="container mx-auto px-4 sm:px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
+      <div
+        className="container mx-auto px-5 sm:px-6 relative z-10"
+      >
+        <div className="md:grid md:grid-cols-[1.1fr_0.9fr] lg:grid-cols-2 gap-6 md:gap-8 lg:gap-16 items-center">
+          <div className="space-y-5 sm:space-y-8 text-center md:text-left">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.15 }}
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
               style={{ background: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', color: '#10b981' }}>
@@ -380,23 +403,23 @@ const Hero = () => {
               Available for opportunities
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.25 }}
-              className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5rem] font-bold leading-[1.1] tracking-tight">
+              className="font-display text-[2.5rem] sm:text-5xl md:text-[2.75rem] lg:text-7xl xl:text-[5rem] font-bold leading-[1.08] tracking-tight">
               <span className="text-tp">Hi, I&apos;m Salman.</span><br />
               <span className="text-ts">I build</span> <span className="text-tp">web</span><br />
               <span className="text-ts">experiences.</span>
             </motion.h1>
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.5 }}
-              className="text-lg sm:text-xl md:text-2xl min-h-[2.5rem] h-auto flex items-center justify-center lg:justify-start font-medium font-display">
+              className="text-lg sm:text-xl md:text-xl lg:text-2xl min-h-[2.5rem] h-auto flex items-center justify-center md:justify-start font-medium font-display">
               <TypingText />
             </motion.div>
             <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.65 }}
-              className="text-sm sm:text-base max-w-md leading-relaxed mx-auto lg:mx-0 text-ts">
+              className="text-sm sm:text-base max-w-md leading-relaxed mx-auto md:mx-0 text-ts">
               Full Stack Developer specializing in React, Django, and modern web technologies.
             </motion.p>
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...SPRING, delay: 0.75 }}
-              className="flex flex-wrap items-center gap-3 sm:gap-4 justify-center lg:justify-start">
+              className="flex flex-wrap items-center gap-3 sm:gap-4 justify-center md:justify-start">
               <MagneticButton onClick={() => scrollToTarget('#projects')}
-                className="group px-6 sm:px-7 py-3 rounded-full text-sm font-medium flex items-center gap-2 transition-all duration-300"
+                className="group px-6 sm:px-7 py-3 rounded-full text-sm font-medium flex items-center gap-2"
                 style={{ background: isDark ? '#f0f0f0' : '#111111', color: isDark ? '#111111' : '#ffffff',
                   boxShadow: isDark ? '0 4px 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.15)' }}>
                 View Work <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
@@ -408,72 +431,206 @@ const Hero = () => {
               </MagneticButton>
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ ...SPRING, delay: 0.9 }}
-              className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm pt-4 border-t justify-center lg:justify-start text-tm"
+              className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm pt-4 border-t justify-center md:justify-start text-tm"
               style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
               <span className="flex items-center gap-1.5"><MapPin className="w-3.5 sm:w-4 h-3.5 sm:h-4" /> Kerala, India</span>
               <span className="flex items-center gap-1.5"><GraduationCap className="w-3.5 sm:w-4 h-3.5 sm:h-4" /> MSc Computer Science</span>
             </motion.div>
           </div>
           
+          {/* Desktop/tablet image — hidden on mobile */}
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            style={{ y: profileY, willChange: "transform" }}
+            style={{ y: profileY, willChange: 'transform' }}
             transition={{ ...SPRING, delay: 0.4 }}
-            className="flex items-center justify-center mt-8 lg:mt-0">
+            className="hidden md:flex items-center justify-center mt-4 md:mt-0">
             <motion.div 
               animate={{ y: [0, -10, 0] }}
               transition={{ type: 'spring', stiffness: 60, damping: 30, repeat: Infinity, repeatDelay: 0.5 }}
               className="relative">
               
-              {/* Ambient glow behind image */}
               <motion.div 
                 animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.05, 1] }}
                 transition={{ type: 'spring', stiffness: 50, damping: 25, repeat: Infinity, repeatDelay: 0.5 }}
-                className="absolute -inset-8 sm:-inset-10 rounded-full pointer-events-none"
+                className="absolute -inset-4 md:-inset-6 lg:-inset-10 rounded-full pointer-events-none"
                 style={{ background: isDark ? 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, rgba(6,182,212,0.04) 40%, transparent 70%)' : 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, rgba(6,182,212,0.08) 40%, transparent 70%)', filter: 'blur(40px)' }} />
 
-              {/* Outer glass container */}
-              <div className="relative p-[3px] rounded-[1.5rem] sm:rounded-[2rem]" style={{ background: isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%)' : 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.4) 100%)' }}>
-                <div className="relative overflow-hidden rounded-[1.4rem] sm:rounded-[1.85rem]" style={{ background: isDark ? '#141414' : '#F2F2F2' }}>
+              <div className="relative p-[3px] rounded-[1.25rem] lg:rounded-[2rem]" style={{ background: isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%)' : 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.4) 100%)' }}>
+                <div className="relative overflow-hidden rounded-[1.15rem] lg:rounded-[1.85rem]" style={{ background: isDark ? '#141414' : '#F2F2F2' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/salman_profile.png" alt="Salman Khan"
-                    className="w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 lg:w-[26rem] lg:h-[26rem] object-cover hover:scale-[1.03] transition-transform duration-700 ease-out" />
+                    className="w-52 h-52 md:w-64 md:h-64 lg:w-[26rem] lg:h-[26rem] object-cover hover:scale-[1.03]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent pointer-events-none" />
                 </div>
               </div>
 
-              {/* Floating tech badge */}
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ ...SPRING, delay: 0.85 }}
-                className="absolute -left-3 sm:-left-6 bottom-8 sm:bottom-12 z-20">
+                className="absolute -left-1.5 md:-left-3 lg:-left-6 bottom-3 md:bottom-6 lg:bottom-12 z-20">
                 <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-                  className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3" style={{ background: isDark ? 'rgba(20,20,20,0.9)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.06)' }}>
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
-                    <Code2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                  className="px-2.5 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 rounded-xl md:rounded-2xl flex items-center gap-2 sm:gap-2.5 md:gap-3" style={{ background: isDark ? 'rgba(20,20,20,0.9)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.06)' }}>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-lg md:rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
+                    <Code2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold text-tm">Stack</div>
-                    <div className="text-xs sm:text-sm font-bold text-tp">React & Django</div>
+                    <div className="text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-wider font-semibold text-tm">Stack</div>
+                    <div className="text-[10px] sm:text-xs md:text-sm font-bold text-tp">React & Django</div>
                   </div>
                 </motion.div>
               </motion.div>
 
-              {/* Floating specialty badge */}
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ ...SPRING, delay: 0.95 }}
-                className="absolute -right-3 sm:-right-6 top-8 sm:top-12 z-20">
+                className="absolute -right-1.5 md:-right-3 lg:-right-6 top-3 md:top-6 lg:top-12 z-20">
                 <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                  className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-2.5" style={{ background: isDark ? 'rgba(20,20,20,0.9)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.06)' }}>
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
-                    <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
+                  className="px-2 sm:px-2.5 md:px-4 py-1.5 sm:py-2 md:py-3 rounded-lg md:rounded-xl lg:rounded-2xl flex items-center gap-1.5 sm:gap-2 md:gap-2.5" style={{ background: isDark ? 'rgba(20,20,20,0.9)' : 'rgba(255,255,255,0.85)', backdropFilter: 'blur(20px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.06)' }}>
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 rounded-md lg:rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
+                    <Brain className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 text-emerald-600" />
                   </div>
                   <div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold text-tm">Specialty</div>
-                    <div className="text-[11px] sm:text-xs font-bold text-tp">Clean Code</div>
+                    <div className="text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-wider font-semibold text-tm">Specialty</div>
+                    <div className="text-[10px] sm:text-[11px] md:text-xs font-bold text-tp">Clean Code</div>
                   </div>
                 </motion.div>
               </motion.div>
             </motion.div>
           </motion.div>
         </div>
-      </motion.div>
+      </div>
+    </section>
+  )
+}
+
+const PinnedHero = ({ isDark }) => {
+  const heroRef = useRef(null)
+  const scrollTo = (sel) => window.__portfolioLenis?.scrollTo(sel, { offset: -20 })
+
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end end'] })
+  const progress = useSpring(scrollYProgress, { stiffness: 80, damping: 22, mass: 0.6 })
+
+  const imgOpacity = useTransform(progress,[0,0.55],[1,0])
+  const imgY = useTransform(progress,[0,0.55],[0,180])
+  
+  const imgScale = useTransform(progress, [0.25, 0.60], [1, 0.82])
+  const imgBlur = useTransform(progress, [0.25, 0.60], [0, 30])
+  const imgBlurFilter = useMotionTemplate`blur(${imgBlur}px)`
+
+  const badgeOpacity = useTransform(progress, [0.40, 0.55], [0, 1])
+  const badgeY = useTransform(progress, [0.40, 0.55], [40, 0])
+
+  const headingOpacity = useTransform(progress,[0.45,0.75],[0,1])
+  const headingY = useTransform(progress, [0.45, 0.75], [80, 0])
+  const headingBlurVal = useTransform(progress, [0.45, 0.75], [18, 0])
+  const headingBlur = useMotionTemplate`blur(${headingBlurVal}px)`
+
+  const typingOpacity = useTransform(progress, [0.55, 0.82], [0, 1])
+  const typingY = useTransform(progress, [0.55, 0.82], [30, 0])
+
+  const buttonsOpacity = useTransform(progress, [0.65, 0.90], [0, 1])
+  const buttonsY = useTransform(progress, [0.65, 0.90], [25, 0])
+
+  const footerOpacity = useTransform(progress, [0.72, 0.90], [0, 1])
+
+  return (
+    <section ref={heroRef} id="home" style={{ height: '110vh', position: 'sticky' }}>
+      <div style={{ position: 'sticky', top: 0, height: '100vh' }}>
+
+        {/* Background ambient glow */}
+        <div style={{ position: 'absolute', top: '25%', left: '25%', width: '12rem', height: '12rem', borderRadius: '9999px', filter: 'blur(72px)', pointerEvents: 'none', zIndex: 0,
+          background: isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.1)' }} />
+        <div style={{ position: 'absolute', bottom: '33%', right: '25%', width: '14rem', height: '14rem', borderRadius: '9999px', filter: 'blur(72px)', pointerEvents: 'none', zIndex: 0,
+          background: isDark ? 'rgba(6,182,212,0.05)' : 'rgba(6,182,212,0.1)' }} />
+
+        {/* Text layer (z-index: 1) — behind image, staggered reveal */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', zIndex: 1 }}>
+          <div style={{ textAlign: 'center', width: '100%', maxWidth: '24rem' }}>
+            <motion.div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 500, marginBottom: '1.25rem',
+              background: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', color: '#10b981', opacity: badgeOpacity, y: badgeY }}>
+              <span style={{ width: '0.375rem', height: '0.375rem', borderRadius: '9999px', background: '#10b981', animation: 'pulse 2s infinite' }} />
+              Available for opportunities
+            </motion.div>
+
+            <motion.h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.025em', marginBottom: '1rem',
+              opacity: headingOpacity, y: headingY, filter: headingBlur }}>
+              <span style={{ color: 'var(--tp)' }}>Hi, I&apos;m Salman.</span><br />
+              <span style={{ color: 'var(--ts)' }}>I build</span> <span style={{ color: 'var(--tp)' }}>web</span><br />
+              <span style={{ color: 'var(--ts)' }}>experiences.</span>
+            </motion.h1>
+
+            <motion.div style={{ fontSize: '1.125rem', minHeight: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 500, fontFamily: 'var(--font-display)', marginBottom: '1rem',
+              opacity: typingOpacity, y: typingY }}>
+              <TypingText />
+            </motion.div>
+
+            <motion.div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem',
+              opacity: buttonsOpacity, y: buttonsY }}>
+              <MagneticButton onClick={() => scrollTo('#projects')}
+                style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  background: isDark ? '#f0f0f0' : '#111111', color: isDark ? '#111111' : '#ffffff',
+                  boxShadow: isDark ? '0 4px 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.15)' }}>
+                View Work <ArrowRight style={{ width: '1rem', height: '1rem' }} />
+              </MagneticButton>
+              <MagneticButton onClick={() => scrollTo('#contact')}
+                style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`, color: 'var(--tp)' }}>
+                <Mail style={{ width: '1rem', height: '1rem' }} /> Contact
+              </MagneticButton>
+            </motion.div>
+
+            <motion.div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, justifyContent: 'center', color: 'var(--tm)',
+              opacity: footerOpacity }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin style={{ width: '0.875rem', height: '0.875rem' }} /> Kerala, India</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><GraduationCap style={{ width: '0.875rem', height: '0.875rem' }} /> MSc Computer Science</span>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Image layer (z-index: 2) — cinematic sink and fade */}
+        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, pointerEvents: 'none', opacity: imgOpacity, scale: imgScale, y: imgY, filter: imgBlurFilter }}>
+          <div style={{ position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: '-3rem', borderRadius: '9999px', pointerEvents: 'none',
+              background: isDark ? 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(6,182,212,0.05) 40%, transparent 70%)' : 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.08) 40%, transparent 70%)', filter: 'blur(40px)' }} />
+            <div style={{ position: 'relative', padding: '2px', borderRadius: '1rem',
+              background: isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%)' : 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.4) 100%)' }}>
+              <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '0.85rem', background: isDark ? '#141414' : '#F2F2F2' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/salman_profile.png" alt="Salman Khan" style={{ width: 'min(80vw, 20rem)', height: 'min(80vw, 20rem)', objectFit: 'cover', display: 'block' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.05), transparent, transparent)', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            {/* Floating cards (z-index: 20) */}
+            <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ position: 'absolute', left: '-1rem', bottom: '1.5rem', zIndex: 20 }}>
+              <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                background: isDark ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.88)', backdropFilter: 'blur(16px)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+                <div style={{ width: '1.75rem', height: '1.75rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
+                  <Code2 style={{ width: '0.875rem', height: '0.875rem', color: '#10b981' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '7px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--tm)' }}>Stack</div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tp)' }}>React & Django</div>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div animate={{ y: [0, 5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+              style={{ position: 'absolute', right: '-0.75rem', top: '2rem', zIndex: 20 }}>
+              <div style={{ padding: '0.375rem 0.625rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem',
+                background: isDark ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.88)', backdropFilter: 'blur(16px)',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+                <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
+                  <Brain style={{ width: '0.625rem', height: '0.625rem', color: '#10b981' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '7px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--tm)' }}>Specialty</div>
+                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tp)' }}>Clean Code</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+
+      </div>
     </section>
   )
 }
@@ -485,20 +642,20 @@ const Section = ({ id, eyebrow, title, subtitle, children, className = '' }) => 
   const sectionY = useSpring(sectionYRaw, SCROLL_SPRING)
 
   return (
-    <section ref={ref} id={id} className={`relative py-20 sm:py-32 px-4 sm:px-6 ${className}`}>
+    <section ref={ref} id={id} className={`relative py-16 sm:py-24 md:py-32 px-5 sm:px-6 ${className}`}>
       <motion.div style={{ y: sectionY }} className="container mx-auto max-w-6xl relative z-10">
         <motion.div initial={{ opacity: 0, y: 28, filter: 'blur(2px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           viewport={{ once: true, amount: 0.2 }} transition={SPRING}
-          className="mb-16 sm:mb-20">
+          className="mb-12 sm:mb-16 md:mb-20">
         {eyebrow && (
           <motion.div initial={{ opacity: 0, y: 15, filter: 'blur(2px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true, amount: 0.2 }} transition={SPRING}
-            className="text-xs uppercase tracking-[0.2em] mb-4 text-tm">
+            className="text-xs uppercase tracking-[0.2em] mb-3 sm:mb-4 text-tm">
             {eyebrow}
           </motion.div>
         )}
-        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">{title}</h2>
-        {subtitle && <motion.p initial={{ opacity: 0, y: 12, filter: 'blur(2px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }} viewport={{ once: true, amount: 0.2 }} transition={{ ...SPRING, delay: 0.15 }} className="text-sm sm:text-base mt-4 max-w-lg text-ts">{subtitle}</motion.p>}
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight leading-tight">{title}</h2>
+        {subtitle && <motion.p initial={{ opacity: 0, y: 12, filter: 'blur(2px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }} viewport={{ once: true, amount: 0.2 }} transition={{ ...SPRING, delay: 0.15 }} className="text-sm sm:text-base mt-3 sm:mt-4 max-w-lg text-ts">{subtitle}</motion.p>}
       </motion.div>
       {children}
     </motion.div>
@@ -511,28 +668,28 @@ const About = () => {
   const isDark = theme === 'dark'
   return (
     <Section id="about" eyebrow="About" title={<>The story <span className="text-tm">behind the code</span></>}>
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-10 sm:mb-12">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-8 sm:mb-12">
       {STATS.map((s, i) => (
         <motion.div key={s.label} initial={{ opacity: 0, y: 26, filter: 'blur(3px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           viewport={{ once: true, amount: 0.2 }} transition={{ ...SPRING, delay: i * 0.06 }} whileHover={{ y: -6, scale: 1.02 }}
-          className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center">
-          <div className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-1">
+          className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-3.5 sm:p-6 text-center">
+          <div className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-0.5 sm:mb-1">
             <Counter value={s.value} suffix={s.suffix} />
           </div>
-          <div className="text-[9px] sm:text-[10px] uppercase tracking-widest text-tm">{s.label}</div>
+          <div className="text-[8px] sm:text-[10px] uppercase tracking-widest text-tm">{s.label}</div>
         </motion.div>
       ))}
     </div>
-    <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+    <div className="grid lg:grid-cols-2 gap-3 sm:gap-6">
       <motion.div initial={{ opacity: 0, x: -24, filter: 'blur(3px)' }} whileInView={{ opacity: 1, x: 0, filter: 'blur(0px)' }} viewport={{ once: true, amount: 0.2 }}
-        transition={SPRING} whileHover={{ y: -6, scale: 1.02 }} className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-6 sm:p-8 md:p-10">
-        <div className="flex items-center gap-3 mb-5 sm:mb-6">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 glass rounded-xl flex items-center justify-center">
+        transition={SPRING} whileHover={{ y: -6, scale: 1.02 }} className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-5 sm:p-8 md:p-10">
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 glass rounded-xl flex items-center justify-center">
             <Rocket className="w-4 h-4 sm:w-5 sm:h-5 text-ts" />
           </div>
-          <h3 className="font-display text-lg sm:text-xl font-bold">My Journey</h3>
+          <h3 className="font-display text-base sm:text-xl font-bold">My Journey</h3>
         </div>
-        <p className="leading-relaxed mb-4 text-sm text-ts">
+        <p className="leading-relaxed mb-3 sm:mb-4 text-sm text-ts">
           I&apos;m Salman Khan — a Full Stack Developer with an MSc in Computer Science from Sree Narayana College, Cherthala, Kerala University.
         </p>
         <p className="leading-relaxed text-sm text-ts">
@@ -540,29 +697,29 @@ const About = () => {
         </p>
       </motion.div>
       <motion.div initial={{ opacity: 0, x: 24, filter: 'blur(3px)' }} whileInView={{ opacity: 1, x: 0, filter: 'blur(0px)' }} viewport={{ once: true, amount: 0.2 }}
-        transition={{ ...SPRING, delay: 0.08 }} whileHover={{ y: -6, scale: 1.02 }} className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-6 sm:p-8 md:p-10">
-        <div className="flex items-center gap-3 mb-5 sm:mb-6">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 glass rounded-xl flex items-center justify-center">
+        transition={{ ...SPRING, delay: 0.08 }} whileHover={{ y: -6, scale: 1.02 }} className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-5 sm:p-8 md:p-10">
+        <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 glass rounded-xl flex items-center justify-center">
             <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-ts" />
           </div>
-          <h3 className="font-display text-lg sm:text-xl font-bold">What I Value</h3>
+          <h3 className="font-display text-base sm:text-xl font-bold">What I Value</h3>
         </div>
-        <ul className="space-y-3 sm:space-y-4 text-sm">
+        <ul className="space-y-2.5 sm:space-y-4 text-sm">
           {[
             ['Quality over quantity', 'Code that reads like prose.'],
             ['Performance matters', 'Every millisecond counts.'],
             ['Design + Engineering', 'Beauty and function must coexist.'],
             ['Continuous learning', 'Today\'s best practice is tomorrow\'s legacy.'],
           ].map(([k, v]) => (
-            <li key={k} className="flex gap-3">
+            <li key={k} className="flex gap-2.5 sm:gap-3">
               <div className="mt-1.5 w-1 h-1 rounded-full flex-shrink-0 bg-tm" />
               <div className="text-ts"><span className="font-medium text-tp">{k}.</span> {v}</div>
             </li>
           ))}
         </ul>
       </motion.div>
-    </div>
-  </Section>
+      </div>
+    </Section>
   )
 }
 
@@ -573,7 +730,7 @@ const Skills = () => {
   const categories = Object.keys(SKILLS)
   return (
     <Section id="skills" eyebrow="Skills" title={<>Tech I <span className="text-tm">work with</span></>}>
-      <div className="flex flex-wrap gap-2 mb-8 sm:mb-10">
+      <div className="flex overflow-x-auto gap-2 mb-8 sm:mb-10 pb-2 -mx-1 px-1 hide-scrollbar">
         {categories.map((c) => {
           const Icon = SKILL_ICONS[c]
           const isActive = active === c
@@ -581,7 +738,7 @@ const Skills = () => {
             <motion.button key={c} onClick={() => setActive(c)}
               whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
               animate={isActive ? { y: -1 } : { y: 0 }}
-              className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-300"
+              className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs font-medium flex-shrink-0 whitespace-nowrap"
               style={{
                 background: isActive
                   ? (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.8)')
@@ -607,7 +764,7 @@ const Skills = () => {
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           exit={{ opacity: 0, y: -15, filter: 'blur(2px)' }}
           transition={SPRING_FAST}
-          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
           {SKILLS[active].map((s, i) => (
             <motion.div
               key={s.name}
@@ -615,8 +772,8 @@ const Skills = () => {
               animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
               transition={{ ...SPRING, delay: i * 0.06 }}
               whileHover={{ y: -6, scale: 1.02 }}
-              className="glass-strong glass-interactive rounded-xl p-4 sm:p-5">
-              <div className="flex items-center justify-between mb-3">
+              className="glass-strong glass-interactive rounded-xl p-3.5 sm:p-5">
+              <div className="flex items-center justify-between mb-2.5 sm:mb-3">
                 <span className="text-sm font-medium text-tp">{s.name}</span>
                 <span className="font-mono text-[10px] text-tm">{s.level}%</span>
               </div>
@@ -655,7 +812,7 @@ const ProjectCard = ({ p, idx }) => {
         style={{ boxShadow: isDark ? '0 8px 40px rgba(0,0,0,0.3)' : '0 8px 40px rgba(0,0,0,0.06)' }}>
         
         {/* Image area */}
-        <div className="relative h-56 sm:h-72 lg:h-80 overflow-hidden">
+        <div className="relative h-48 sm:h-72 lg:h-80 overflow-hidden">
           <motion.div style={{ y: imgY, scale: 1.15 }} className="absolute inset-0 parallax-img">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.image} alt={p.name}
@@ -665,34 +822,34 @@ const ProjectCard = ({ p, idx }) => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
           
           {/* Project number badge */}
-          <div className="absolute top-4 sm:top-5 left-4 sm:left-5 w-8 h-8 sm:w-9 sm:h-9 rounded-full glass flex items-center justify-center">
-            <span className="text-[10px] sm:text-xs font-bold text-white/90">{String(idx + 1).padStart(2, '0')}</span>
+          <div className="absolute top-3.5 sm:top-5 left-3.5 sm:left-5 w-7 h-7 sm:w-9 sm:h-9 rounded-full glass flex items-center justify-center">
+            <span className="text-[9px] sm:text-xs font-bold text-white/90">{String(idx + 1).padStart(2, '0')}</span>
           </div>
 
           {/* Title overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-8">
-            <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-white/50 mb-1.5 sm:mb-2">{p.tagline}</div>
-            <h3 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-white">{p.name}</h3>
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
+            <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-white/50 mb-1 sm:mb-2">{p.tagline}</div>
+            <h3 className="font-display text-xl sm:text-3xl md:text-4xl font-bold text-white">{p.name}</h3>
           </div>
         </div>
 
         {/* Content area */}
-        <div className="p-5 sm:p-6 md:p-8 space-y-4 sm:space-y-5">
+        <div className="p-4 sm:p-6 md:p-8 space-y-3 sm:space-y-5">
           <p className="text-sm sm:text-[15px] leading-relaxed text-ts max-w-2xl">{p.description}</p>
 
           {/* Tech stack */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             {p.tech.map((t) => (
-              <span key={t} className="px-2.5 sm:px-3 py-1 text-[9px] sm:text-[10px] font-medium glass rounded-full text-tm">{t}</span>
+              <span key={t} className="px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] font-medium glass rounded-full text-tm">{t}</span>
             ))}
           </div>
 
           {/* Metrics row */}
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {p.metrics.map((m) => (
-              <div key={m.v} className="flex items-baseline gap-1.5">
-                <span className="font-display font-bold text-sm sm:text-base text-tp">{m.k}</span>
-                <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-tm">{m.v}</span>
+              <div key={m.v} className="flex items-baseline gap-1 sm:gap-1.5">
+                <span className="font-display font-bold text-xs sm:text-base text-tp">{m.k}</span>
+                <span className="text-[8px] sm:text-[10px] uppercase tracking-wider text-tm">{m.v}</span>
               </div>
             ))}
           </div>
@@ -701,11 +858,11 @@ const ProjectCard = ({ p, idx }) => {
           <div className="h-px w-full" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }} />
 
           {/* Links */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <motion.a href={p.github} target="_blank" rel="noreferrer"
                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }} transition={SPRING_FAST}
-               className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 glass rounded-full text-xs font-medium text-tp">
-              <Github className="w-3.5 h-3.5" /> Source Code <ArrowUpRight className="w-3 h-3 opacity-50" />
+               className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1.5 sm:py-2.5 glass rounded-full text-[11px] sm:text-xs font-medium text-tp">
+              <Github className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Source Code <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-50" />
             </motion.a>
           </div>
         </div>
@@ -733,13 +890,13 @@ const Experience = () => {
   const timelineScale = useSpring(scrollYProgress, SCROLL_SPRING)
   return (
     <Section id="experience" eyebrow="Experience" title={<>Professional <span className="text-tm">timeline</span></>}>
-      <div ref={containerRef} className="relative ml-2 sm:ml-4 space-y-8 sm:space-y-12">
+      <div ref={containerRef} className="relative ml-2 sm:ml-4 space-y-6 sm:space-y-12">
         {/* Vertical timeline track line */}
-        <div className="absolute left-4 sm:left-6 top-2 bottom-2 w-[2px] bg-black/10 dark:bg-white/10 rounded-full" />
+        <div className="absolute left-3.5 sm:left-6 top-2 bottom-2 w-[2px] bg-black/10 dark:bg-white/10 rounded-full" />
         
         {/* Glowing active drawing line */}
         <motion.div 
-          className="absolute left-4 sm:left-6 top-2 bottom-2 w-[2px] bg-gradient-to-b from-emerald-500 to-cyan-500 rounded-full origin-top"
+          className="absolute left-3.5 sm:left-6 top-2 bottom-2 w-[2px] bg-gradient-to-b from-emerald-500 to-cyan-500 rounded-full origin-top"
           style={{ scaleY: timelineScale }}
         />
         
@@ -748,17 +905,17 @@ const Experience = () => {
           return (
             <div key={e.year} className="relative group">
               {/* Timeline dot/icon indicator */}
-              <motion.div className="absolute left-4 sm:left-6 top-10 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full glass-strong border border-black/10 dark:border-white/10 flex items-center justify-center z-10" whileHover={{ scale: 1.1 }} transition={SPRING_FAST}>
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
+              <motion.div className="absolute left-3.5 sm:left-6 top-8 sm:top-10 -translate-x-1/2 -translate-y-1/2 w-7 h-7 sm:w-10 sm:h-10 rounded-full glass-strong border border-black/10 dark:border-white/10 flex items-center justify-center z-10" whileHover={{ scale: 1.1 }} transition={SPRING_FAST}>
+                <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-500" />
               </motion.div>
               
               <motion.div initial={{ opacity: 0, x: 24, filter: 'blur(3px)' }} whileInView={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
                 viewport={{ once: true, amount: 0.2 }} transition={{ ...SPRING, delay: i * 0.08 }} whileHover={{ y: -6, scale: 1.02 }}
-                className="ml-10 sm:ml-16 glass-strong glass-interactive rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8">
+                className="ml-9 sm:ml-16 glass-strong glass-interactive rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] sm:text-xs font-mono mb-1 text-tm">{e.year}</div>
-                  <h3 className="font-display font-bold text-base sm:text-lg mb-1">{e.role}</h3>
-                  <div className="text-xs sm:text-sm mb-2 sm:mb-3 text-tm">{e.company}</div>
+                  <div className="text-[9px] sm:text-xs font-mono mb-0.5 sm:mb-1 text-tm">{e.year}</div>
+                  <h3 className="font-display font-bold text-sm sm:text-lg mb-0.5 sm:mb-1">{e.role}</h3>
+                  <div className="text-[11px] sm:text-sm mb-1.5 sm:mb-3 text-tm">{e.company}</div>
                   <p className="text-xs sm:text-sm leading-relaxed text-ts">{e.description}</p>
                 </div>
               </motion.div>
@@ -772,18 +929,18 @@ const Experience = () => {
 
 const Achievements = () => (
   <Section id="achievements" eyebrow="Achievements" title={<>Milestones <span className="text-tm">along the way</span></>}>
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
       {ACHIEVEMENTS.map((a, i) => {
         const Icon = a.icon
         return (
           <motion.div key={a.title} initial={{ opacity: 0, y: 24, filter: 'blur(3px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true, amount: 0.2 }} transition={{ ...SPRING, delay: i * 0.06 }} whileHover={{ y: -6, scale: 1.02 }}
-            className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8 group">
-            <motion.div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl glass flex items-center justify-center mb-3 sm:mb-4" whileHover={{ scale: 1.05 }} transition={SPRING_FAST}>
+            className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 group">
+            <motion.div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl glass flex items-center justify-center mb-2.5 sm:mb-4" whileHover={{ scale: 1.05 }} transition={SPRING_FAST}>
               <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-ts" />
             </motion.div>
-            <h3 className="font-display font-bold text-sm sm:text-base mb-1">{a.title}</h3>
-            <p className="text-[10px] sm:text-xs text-tm">{a.issuer}</p>
+            <h3 className="font-display font-bold text-sm sm:text-base mb-0.5 sm:mb-1">{a.title}</h3>
+            <p className="text-[9px] sm:text-xs text-tm">{a.issuer}</p>
           </motion.div>
         )
       })}
@@ -795,18 +952,18 @@ const TechMarquee = () => {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   return (
-    <section className="py-16 sm:py-20 overflow-hidden border-y" style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+    <section className="py-12 sm:py-20 overflow-hidden border-y" style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
       <motion.div initial={{ opacity: 0, y: 20, filter: 'blur(3px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }} viewport={{ once: true }}
         transition={SPRING}
-        className="text-center mb-6 sm:mb-8">
+        className="text-center mb-5 sm:mb-8">
         <div className="text-xs uppercase tracking-[0.2em] text-tm">Tech Stack</div>
       </motion.div>
       <div className="relative">
-        <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-24 bg-gradient-to-r to-transparent z-10 pointer-events-none" style={{ ['--tw-gradient-from']: isDark ? '#0a0a0a' : '#F2F2F2' }} />
-        <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-24 bg-gradient-to-l to-transparent z-10 pointer-events-none" style={{ ['--tw-gradient-from']: isDark ? '#0a0a0a' : '#F2F2F2' }} />
-        <div className="flex marquee gap-6 sm:gap-8 w-max">
+        <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-r to-transparent z-10 pointer-events-none" style={{ ['--tw-gradient-from']: isDark ? '#0a0a0a' : '#F2F2F2' }} />
+        <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-l to-transparent z-10 pointer-events-none" style={{ ['--tw-gradient-from']: isDark ? '#0a0a0a' : '#F2F2F2' }} />
+        <div className="flex marquee gap-5 sm:gap-8 w-max">
           {[...TECH_MARQUEE, ...TECH_MARQUEE].map((t, i) => (
-            <div key={i} className="px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm whitespace-nowrap glass rounded-full text-tm">
+            <div key={i} className="px-3.5 sm:px-6 py-2 sm:py-3 text-[11px] sm:text-sm whitespace-nowrap glass rounded-full text-tm">
               {t}
             </div>
           ))}
@@ -824,40 +981,10 @@ const COLORS = {
 const CELL = 9
 const GAP = 2
 const LABEL_WIDTH = 28
+const MOBILE_WEEKS = 24
 
-const ContributionCell = memo(({ day, palette, isDark }) => {
-  const tooltip = day.contributionCount
-    ? `${day.contributionCount} contribution${day.contributionCount !== 1 ? 's' : ''} on ${new Date(day.date + 'T00:00:00').toLocaleDateString()}`
-    : `No contributions on ${new Date(day.date + 'T00:00:00').toLocaleDateString()}`
-
-  return (
-    <div
-      title={tooltip}
-      className="contribution-cell"
-      style={{
-        width: CELL,
-        height: CELL,
-        minWidth: CELL,
-        minHeight: CELL,
-        flexShrink: 0,
-        borderRadius: 2,
-        backgroundColor: palette[day.contributionLevel],
-        cursor: 'default',
-        willChange: 'transform',
-        transform: 'translateZ(0)',
-        backfaceVisibility: 'hidden',
-      }}
-    />
-  )
-})
-ContributionCell.displayName = 'ContributionCell'
-
-const ContributionGrid = memo(({ weeks, total, isDark }) => {
-  if (!weeks || !weeks.length) return null
-
+const ContributionGridDesktop = memo(({ weeks, total, isDark }) => {
   const palette = isDark ? COLORS.dark : COLORS.light
-
-  const naturalWidth = LABEL_WIDTH + weeks.length * (CELL + GAP)
 
   const monthLabels = useMemo(() => {
     return weeks.map((week, i) => {
@@ -870,62 +997,120 @@ const ContributionGrid = memo(({ weeks, total, isDark }) => {
   }, [weeks])
 
   return (
+    <>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 4, height: 14, paddingLeft: LABEL_WIDTH }}>
+        {monthLabels.map((label, i) => (
+          <div key={i} style={{ width: CELL + GAP, flexShrink: 0, position: 'relative' }}>
+            {label && (
+              <span style={{ position: 'absolute', left: 0, top: 0, fontSize: 10, color: isDark ? '#8b949e' : '#656d76', whiteSpace: 'nowrap' }}>
+                {label}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', width: 'fit-content', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, paddingTop: 1 }}>
+          {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((label, i) => (
+            <span key={i} style={{ width: LABEL_WIDTH, height: CELL, fontSize: 10, lineHeight: `${CELL}px`, color: isDark ? '#8b949e' : '#656d76', textAlign: 'right' }}>
+              {label}
+            </span>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: GAP, flexShrink: 0 }}>
+          {weeks.map((week, wi) => (
+            <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flexShrink: 0 }}>
+              {week.contributionDays.map((day, di) => (
+                <div
+                  key={di}
+                  title={day.contributionCount ? `${day.contributionCount} contributions` : 'No contributions'}
+                  style={{
+                    width: CELL, height: CELL, flexShrink: 0, borderRadius: 2,
+                    backgroundColor: palette[day.contributionLevel],
+                  }}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 4 }}>
+        <span style={{ fontSize: 11, color: isDark ? '#8b949e' : '#656d76' }}>
+          {total.toLocaleString()} contributions in the last year
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#656d76' }}>Less</span>
+          {Object.values(palette).map((c) => (
+            <div key={c} style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: c }} />
+          ))}
+          <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#656d76' }}>More</span>
+        </div>
+      </div>
+    </>
+  )
+})
+ContributionGridDesktop.displayName = 'ContributionGridDesktop'
+
+const ContributionGridMobile = memo(({ weeks, total, isDark }) => {
+  const palette = isDark ? COLORS.dark : COLORS.light
+  const recentWeeks = useMemo(() => weeks.slice(-MOBILE_WEEKS), [weeks])
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: GAP, flexShrink: 0 }}>
+        {recentWeeks.map((week, wi) => (
+          <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flexShrink: 0 }}>
+            {week.contributionDays.map((day, di) => (
+              <div
+                key={di}
+                title={day.contributionCount ? `${day.contributionCount} contributions` : 'No contributions'}
+                style={{
+                  width: CELL, height: CELL, flexShrink: 0, borderRadius: 2,
+                  backgroundColor: palette[day.contributionLevel],
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 4 }}>
+        <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#656d76' }}>
+          {total.toLocaleString()} contributions in the last year
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span style={{ fontSize: 9, color: isDark ? '#8b949e' : '#656d76' }}>Less</span>
+          {Object.values(palette).map((c) => (
+            <div key={c} style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: c }} />
+          ))}
+          <span style={{ fontSize: 9, color: isDark ? '#8b949e' : '#656d76' }}>More</span>
+        </div>
+      </div>
+    </>
+  )
+})
+ContributionGridMobile.displayName = 'ContributionGridMobile'
+
+const ContributionGrid = memo(({ weeks, total, isDark }) => {
+  if (!weeks || !weeks.length) return null
+
+  return (
     <motion.div
       initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
       whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ ...SPRING, delay: 0.1 }}
-      style={{ width: '100%', display: 'flex', justifyContent: 'center', overflow: 'hidden' }}
     >
-      <div style={{ width: naturalWidth, maxWidth: '100%' }}>
-        <div style={{ display: 'flex', gap: 0, marginBottom: 4, height: 14, position: 'relative', paddingLeft: LABEL_WIDTH }}>
-          {monthLabels.map((label, i) => (
-            <div key={i} style={{ width: CELL + GAP, flexShrink: 0, position: 'relative' }}>
-              {label && (
-                <span style={{ position: 'absolute', left: 0, top: 0, fontSize: 10, color: isDark ? '#8b949e' : '#656d76', whiteSpace: 'nowrap' }}>
-                  {label}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+      <div className="sm:hidden overflow-x-auto hide-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <ContributionGridMobile weeks={weeks} total={total} isDark={isDark} />
+      </div>
 
-        <div style={{ display: 'inline-flex', gap: 0, width: 'fit-content', flexShrink: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: GAP, marginRight: 4, paddingTop: 1 }}>
-            {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((label, i) => (
-              <span key={i} style={{ width: LABEL_WIDTH, height: CELL, fontSize: 10, lineHeight: `${CELL}px`, color: isDark ? '#8b949e' : '#656d76', textAlign: 'right' }}>
-                {label}
-              </span>
-            ))}
-          </div>
-
-          <div style={{ display: 'inline-flex', gap: GAP, width: 'fit-content', flexShrink: 0 }}>
-            {weeks.map((week, wi) => (
-              <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: GAP, flexShrink: 0 }}>
-                {week.contributionDays.map((day, di) => (
-                  <ContributionCell
-                    key={di}
-                    day={day}
-                    palette={palette}
-                    isDark={isDark}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 4 }}>
-          <span style={{ fontSize: 11, color: isDark ? '#8b949e' : '#656d76' }}>
-            {total.toLocaleString()} contributions in the last year
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#656d76' }}>Less</span>
-            {Object.values(palette).map((c) => (
-              <div key={c} style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: c }} />
-            ))}
-            <span style={{ fontSize: 10, color: isDark ? '#8b949e' : '#656d76' }}>More</span>
-          </div>
+      <div className="hidden sm:block overflow-x-auto hide-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ minWidth: LABEL_WIDTH + weeks.length * (CELL + GAP) }}>
+          <ContributionGridDesktop weeks={weeks} total={total} isDark={isDark} />
         </div>
       </div>
     </motion.div>
@@ -986,13 +1171,13 @@ const GitHubSection = memo(() => {
 
   return (
     <Section id="github" eyebrow="GitHub" title={<>Open source <span className="text-tm">activity</span></>} className="github-section">
-      <div className="grid lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="flex flex-col lg:grid lg:grid-cols-3 gap-3 sm:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={SPRING}
-          className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-5 sm:p-6 md:p-8 lg:col-span-2"
+          className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 lg:col-span-2"
           style={{ willChange: 'transform, opacity', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
         >
           <div className="w-full">
@@ -1008,7 +1193,7 @@ const GitHubSection = memo(() => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ ...SPRING, delay: 0.24 }}
-            className="mt-4 sm:mt-5 flex items-center justify-between"
+            className="mt-3 sm:mt-5 flex items-center justify-between"
           >
             <div>
               <div className="font-display text-lg sm:text-xl font-bold">@salmandev07</div>
@@ -1027,19 +1212,20 @@ const GitHubSection = memo(() => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ ...SPRING, delay: 0.1 }}
-          className="grid grid-cols-1 gap-3 sm:gap-4"
+          className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4"
         >
           {statCards.map((s, i) => {
             const Icon = s.icon
+            const isLangCard = s.k === 'Languages'
             return (
               <div
                 key={s.k}
-                className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-4 sm:p-6"
+                className={`glass-strong glass-interactive rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-6 ${isLangCard ? 'col-span-2 lg:col-span-1' : ''}`}
                 style={{ willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
               >
-                <Icon className="w-4 h-4 mb-2 sm:mb-3 text-tm" />
-                <div className="font-display text-base sm:text-lg font-bold">{s.v}</div>
-                <div className="text-[10px] sm:text-xs text-tm">{s.k}</div>
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mb-1.5 sm:mb-3 text-tm" />
+                <div className="font-display text-sm sm:text-base lg:text-lg font-bold">{s.v}</div>
+                <div className="text-[8px] sm:text-[10px] lg:text-xs text-tm">{s.k}</div>
               </div>
             )
           })}
@@ -1052,25 +1238,25 @@ const GitHubSection = memo(() => {
             viewport={{ once: true, amount: 0.2 }}
             transition={{ ...SPRING, delay: 0.1 }}
           >
-            <div className="text-xs uppercase tracking-[0.2em] mb-4 px-1 text-tm">
+            <div className="text-[10px] sm:text-xs uppercase tracking-[0.2em] mb-3 sm:mb-4 px-1 text-tm">
               Recent Repositories
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {repos.slice(0, 6).map((r, i) => (
                 <a
                   key={r.id}
                   href={r.html_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-4 sm:p-5 group block"
+                  className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-3.5 sm:p-5 group block"
                   style={{ willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-display font-bold text-xs sm:text-sm truncate">{r.name}</span>
-                    <ArrowUpRight className="w-3 h-3 flex-shrink-0 text-tm group-hover:text-tp" />
+                  <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                    <span className="font-display font-bold text-[11px] sm:text-sm truncate">{r.name}</span>
+                    <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0 text-tm group-hover:text-tp" />
                   </div>
-                  <p className="text-[10px] sm:text-xs line-clamp-2 mb-2 text-tm">{r.description || 'No description'}</p>
-                  <div className="flex items-center gap-3 text-[9px] sm:text-[10px] text-tm">
+                  <p className="text-[9px] sm:text-xs line-clamp-2 mb-1.5 sm:mb-2 text-tm">{r.description || 'No description'}</p>
+                  <div className="flex items-center gap-2 sm:gap-3 text-[8px] sm:text-[10px] text-tm">
                     {r.language && <span>{r.language}</span>}
                     {r.stargazers_count > 0 && <span>★ {r.stargazers_count}</span>}
                   </div>
@@ -1096,31 +1282,31 @@ const Testimonials = () => {
   return (
     <Section id="testimonials" eyebrow="Testimonials" title={<>What people <span className="text-tm">say</span></>}>
       <div className="max-w-2xl">
-        <div className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-6 sm:p-8 md:p-10 relative min-h-[220px] sm:min-h-[260px]">
-          <div className="text-4xl absolute top-5 sm:top-6 left-5 sm:left-6 text-tm">&ldquo;</div>
-          <div className="relative h-40 sm:h-48 pt-6 sm:pt-8">
+        <div className="glass-strong glass-interactive rounded-xl sm:rounded-2xl p-5 sm:p-8 md:p-10 relative min-h-[200px] sm:min-h-[260px]">
+          <div className="text-3xl sm:text-4xl absolute top-4 sm:top-6 left-4 sm:left-6 text-tm">&ldquo;</div>
+          <div className="relative h-36 sm:h-48 pt-5 sm:pt-8">
             <AnimatePresence mode="wait">
               <motion.div key={idx} initial={{ opacity: 0, y: 18, filter: 'blur(2px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                 exit={{ opacity: 0, y: -18, filter: 'blur(2px)' }} transition={SPRING_FAST}
                 className="absolute inset-0">
-                <p className="text-base sm:text-lg leading-relaxed mb-5 sm:mb-6 text-ts">{TESTIMONIALS[idx].quote}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full glass flex items-center justify-center text-xs font-bold">
+                <p className="text-sm sm:text-lg leading-relaxed mb-4 sm:mb-6 text-ts">{TESTIMONIALS[idx].quote}&rdquo;</p>
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full glass flex items-center justify-center text-[10px] sm:text-xs font-bold">
                     {TESTIMONIALS[idx].name[0]}
                   </div>
                   <div>
-                    <div className="text-sm font-medium">{TESTIMONIALS[idx].name}</div>
-                    <div className="text-xs text-tm">{TESTIMONIALS[idx].role}</div>
+                    <div className="text-xs sm:text-sm font-medium">{TESTIMONIALS[idx].name}</div>
+                    <div className="text-[10px] sm:text-xs text-tm">{TESTIMONIALS[idx].role}</div>
                   </div>
                 </div>
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
-        <div className="flex justify-center gap-2 mt-5 sm:mt-6">
+        <div className="flex justify-center gap-1.5 sm:gap-2 mt-4 sm:mt-6">
           {TESTIMONIALS.map((_, i) => (
             <motion.button key={i} onClick={() => setIdx(i)}
-              animate={{ width: idx === i ? '2rem' : '1rem', background: idx === i ? (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)') : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
+              animate={{ width: idx === i ? '1.75rem' : '0.75rem', background: idx === i ? (isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)') : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="h-1 rounded-full" />
           ))}
@@ -1153,8 +1339,8 @@ const Contact = () => {
   }
   return (
     <Section id="contact" eyebrow="Contact" title={<>Let&apos;s <span className="text-tm">connect</span></>}>
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 max-w-5xl">
-        <div className="glass-strong rounded-xl sm:rounded-2xl p-6 sm:p-8 md:p-10 space-y-4 sm:space-y-6">
+      <div className="grid lg:grid-cols-2 gap-3 sm:gap-6 max-w-5xl">
+        <div className="glass-strong rounded-xl sm:rounded-2xl p-5 sm:p-8 md:p-10 space-y-3 sm:space-y-6">
           {[
             { icon: Mail, k: 'Email', v: 'salmandevxofficial@gmail.com', href: 'mailto:salmandevxofficial@gmail.com' },
             { icon: Github, k: 'GitHub', v: '@salmandev07', href: 'https://github.com/salmandev07' },
@@ -1166,39 +1352,39 @@ const Contact = () => {
               <motion.a key={c.k} href={c.href} target="_blank" rel="noreferrer"
                 initial={{ opacity: 0, x: -25, filter: 'blur(2px)' }} whileInView={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
                 viewport={{ once: true, amount: 0.2 }} transition={{ ...SPRING, delay: i * 0.06 }} whileHover={{ y: -6, scale: 1.02 }}
-                className="flex items-center gap-3 sm:gap-4 glass glass-interactive rounded-xl p-3 sm:p-4 group">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 glass rounded-xl flex items-center justify-center">
-                  <Icon className="w-4 h-4 text-tm" />
+                className="flex items-center gap-2.5 sm:gap-4 glass glass-interactive rounded-xl p-2.5 sm:p-4 group">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 glass rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-tm" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[9px] sm:text-[10px] uppercase tracking-widest text-tm">{c.k}</div>
-                  <div className="text-xs sm:text-sm truncate">{c.v}</div>
+                  <div className="text-[8px] sm:text-[10px] uppercase tracking-widest text-tm">{c.k}</div>
+                  <div className="text-[11px] sm:text-sm truncate">{c.v}</div>
                 </div>
-                <ArrowUpRight className="w-3 h-3 flex-shrink-0 text-tm" />
+                <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0 text-tm" />
               </motion.a>
             )
           })}
         </div>
         <motion.form onSubmit={submit} initial={{ opacity: 0, x: 25, filter: 'blur(3px)' }} whileInView={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
           viewport={{ once: true, amount: 0.2 }} transition={SPRING}
-          className="glass-strong rounded-xl sm:rounded-2xl p-6 sm:p-8 md:p-10 space-y-4 sm:space-y-5">
+          className="glass-strong rounded-xl sm:rounded-2xl p-5 sm:p-8 md:p-10 space-y-3.5 sm:space-y-5">
           <div>
-            <label className="text-[9px] sm:text-[10px] uppercase tracking-widest mb-2 block text-tm">Name</label>
+            <label className="text-[8px] sm:text-[10px] uppercase tracking-widest mb-1.5 sm:mb-2 block text-tm">Name</label>
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="glass border-0 h-10 sm:h-11 rounded-xl text-sm focus-visible:ring-0 focus-visible:ring-offset-0" placeholder="Your name" />
+              className="glass border-0 h-9 sm:h-11 rounded-xl text-sm focus-visible:ring-0 focus-visible:ring-offset-0" placeholder="Your name" />
           </div>
           <div>
-            <label className="text-[9px] sm:text-[10px] uppercase tracking-widest mb-2 block text-tm">Email</label>
+            <label className="text-[8px] sm:text-[10px] uppercase tracking-widest mb-1.5 sm:mb-2 block text-tm">Email</label>
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="glass border-0 h-10 sm:h-11 rounded-xl text-sm focus-visible:ring-0 focus-visible:ring-offset-0" placeholder="you@example.com" />
+              className="glass border-0 h-9 sm:h-11 rounded-xl text-sm focus-visible:ring-0 focus-visible:ring-offset-0" placeholder="you@example.com" />
           </div>
           <div>
-            <label className="text-[9px] sm:text-[10px] uppercase tracking-widest mb-2 block text-tm">Message</label>
+            <label className="text-[8px] sm:text-[10px] uppercase tracking-widest mb-1.5 sm:mb-2 block text-tm">Message</label>
             <Textarea rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })}
               className="glass border-0 rounded-xl text-sm focus-visible:ring-0 focus-visible:ring-offset-0" placeholder="Tell me about your project..." />
           </div>
           <motion.button disabled={loading} type="submit" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} transition={SPRING_FAST}
-            className="w-full px-6 py-3 rounded-xl text-sm font-medium transition disabled:opacity-50 shadow-md"
+            className="w-full px-6 py-2.5 sm:py-3 rounded-xl text-sm font-medium transition disabled:opacity-50 shadow-md"
             style={{ background: isDark ? '#f0f0f0' : '#111111', color: isDark ? '#111111' : '#ffffff' }}>
             {loading ? 'Sending...' : 'Send Message'}
           </motion.button>
@@ -1212,10 +1398,10 @@ const Footer = () => {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   return (
-        <motion.footer initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-      transition={{ type: 'spring', stiffness: 80, damping: 20 }} className="py-10 sm:py-12 px-4 sm:px-6 border-t" style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
-    <div className="container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6">
-      <div className="text-xs sm:text-sm text-tm">© {new Date().getFullYear()} Salman Khan</div>
+    <motion.footer initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+      transition={{ type: 'spring', stiffness: 80, damping: 20 }} className="py-8 sm:py-12 px-5 sm:px-6 border-t" style={{ borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
+    <div className="container mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-6">
+      <div className="text-[11px] sm:text-sm text-tm">© {new Date().getFullYear()} Salman Khan</div>
       <div className="flex items-center gap-2 sm:gap-3">
         {[
           { icon: Github, href: 'https://github.com/salmandev07' },
@@ -1251,7 +1437,7 @@ const BackToTop = () => {
         <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }} transition={SPRING_FAST} whileHover={{ y: -4, scale: 1.03 }} whileTap={{ scale: 0.98 }}
           onClick={() => scrollToTarget(0)}
-          className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 w-10 h-10 sm:w-11 sm:h-11 glass-strong rounded-full flex items-center justify-center shadow-lg hover:shadow-xl gpu-accel text-tp"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-10 h-10 sm:w-11 sm:h-11 glass-strong rounded-full flex items-center justify-center shadow-lg hover:shadow-xl gpu-accel text-tp"
           aria-label="Back to top">
           <ArrowUp className="w-4 h-4" />
         </motion.button>
@@ -1320,7 +1506,7 @@ const App = () => {
         <Spotlight />
         <FloatingDots />
         <LoadingScreen done={loaded} />
-        <Toaster position="top-right" richColors theme="dark" />
+        <Toaster position="top-center" richColors theme="dark" />
         <Navbar />
         <Hero />
         <About />
