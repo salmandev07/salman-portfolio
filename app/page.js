@@ -512,7 +512,7 @@ const ControlledScene = ({ isDark }) => {
 
   const smooth = useSpring(rawProgress, { stiffness: 80, damping: 22, mass: 0.6 })
 
-  const imgOpacity = useTransform(smooth, [0.25, 0.60], [1, 0])
+  const imgOpacity = useTransform(smooth, [0, 1], [1, 0])
   const imgY = useTransform(smooth, [0.25, 0.60], [0, 180])
   const imgScale = useTransform(smooth, [0.25, 0.60], [1, 0.82])
   const imgBlur = useTransform(smooth, [0.25, 0.60], [0, 30])
@@ -537,6 +537,19 @@ const ControlledScene = ({ isDark }) => {
   const scrollHintOpacity = useTransform(smooth, [0, 0.15, 0.30], [1, 0.5, 0])
 
   useEffect(() => {
+  if (intercepting) {
+    window.__portfolioLenis?.stop()
+  } else {
+    window.__portfolioLenis?.start()
+  }
+
+  return () => {
+    window.__portfolioLenis?.start()
+  }
+}, [intercepting])
+
+
+  useEffect(() => {
     const el = overlayRef.current
     if (!el) return
 
@@ -550,7 +563,6 @@ const ControlledScene = ({ isDark }) => {
       if (next >= 1) {
         lockedRef.current = false
         setIntercepting(false)
-        setTimeout(() => window.__portfolioLenis?.scrollTo('#about', { offset: -20 }), 500)
       }
     }
 
@@ -568,21 +580,36 @@ const ControlledScene = ({ isDark }) => {
       if (next >= 1) {
         lockedRef.current = false
         setIntercepting(false)
-        setTimeout(() => window.__portfolioLenis?.scrollTo('#about', { offset: -20 }), 500)
       }
     }
 
-    const onTouchStart = () => { lastY.current = null }
+    const onTouchStart = (e) => {
+      lastY.current = null
+      if (lockedRef.current) e.preventDefault()
+    }
 
     el.addEventListener('wheel', onWheel, { passive: false })
     el.addEventListener('touchmove', onTouchMove, { passive: false })
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
 
     return () => {
       el.removeEventListener('wheel', onWheel)
       el.removeEventListener('touchmove', onTouchMove)
       el.removeEventListener('touchstart', onTouchStart)
     }
+  }, [intercepting, rawProgress])
+
+  useEffect(() => {
+    const reset = () => {
+      if (window.scrollY <= 20 && !lockedRef.current) {
+        lockedRef.current = true
+        totalRef.current = 0
+        rawProgress.set(0)
+        setIntercepting(true)
+      }
+    }
+    window.addEventListener('scroll', reset, { passive: true })
+    return () => window.removeEventListener('scroll', reset)
   }, [rawProgress])
 
   useEffect(() => {
@@ -591,8 +618,7 @@ const ControlledScene = ({ isDark }) => {
 
   return (
     <>
-      {/* Hero content — always in document flow, 100vh tall */}
-      <section id="home" style={{ height: '100vh', position: 'relative', overflow: 'hidden',
+      <section id="home" style={{ position: 'sticky', top: 0, height: '100dvh', overflow: 'hidden',
         background: isDark ? '#0a0a0a' : '#ffffff' }}>
 
         {/* Background ambient glow */}
@@ -707,8 +733,18 @@ const ControlledScene = ({ isDark }) => {
 
       {/* Touch interceptor — fixed overlay, removed after animation */}
       {intercepting && (
-        <div ref={overlayRef} style={{ position: 'fixed', inset: 0, zIndex: 100 }} />
-      )}
+  <div
+    ref={overlayRef}
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 99999,
+      pointerEvents: "auto",
+      touchAction: "none",
+      userSelect: "none",
+    }}
+  />
+)}
     </>
   )
 }
