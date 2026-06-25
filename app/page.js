@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react'
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring, useReducedMotion, useMotionTemplate } from 'framer-motion'
-import { Github, Linkedin, Mail, MapPin, ArrowRight, ArrowUpRight, Code2, Database, Cloud, Wrench, GraduationCap, Briefcase, Menu, X, Rocket, GitBranch, Brain, ArrowUp, Terminal, Heart, Server, Sun, Moon } from 'lucide-react'
+import { Github, Linkedin, Mail, MapPin, ArrowRight, ArrowUpRight, Code2, Database, Cloud, Wrench, GraduationCap, Briefcase, Menu, X, Rocket, GitBranch, Brain, ArrowUp, Terminal, Heart, Server, Sun, Moon, ChevronDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast, Toaster } from 'sonner'
@@ -379,7 +379,7 @@ const Hero = () => {
   const profileY = useTransform(scrollY, [0, 600], [0, -50])
 
   if (isMobile) return (
-    <PinnedHero isDark={isDark} />
+    <ControlledScene isDark={isDark} />
   )
 
   return (
@@ -498,140 +498,211 @@ const Hero = () => {
   )
 }
 
-const PinnedHero = ({ isDark }) => {
-  const heroRef = useRef(null)
-  const scrollTo = (sel) => window.__portfolioLenis?.scrollTo(sel, { offset: -20 })
+const ControlledScene = ({ isDark }) => {
+  const [visible, setVisible] = useState(true)
+  const overlayRef = useRef(null)
+  const totalRef = useRef(0)
+  const lastY = useRef(null)
+  const lockedRef = useRef(true)
+  const rawProgress = useMotionValue(0)
 
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end end'] })
-  const progress = useSpring(scrollYProgress, { stiffness: 80, damping: 22, mass: 0.6 })
+  const SENSITIVITY = 300
+  const WHEEL_FACTOR = 0.002
 
-  const imgOpacity = useTransform(progress,[0,0.55],[1,0])
-  const imgY = useTransform(progress,[0,0.55],[0,180])
-  
-  const imgScale = useTransform(progress, [0.25, 0.60], [1, 0.82])
-  const imgBlur = useTransform(progress, [0.25, 0.60], [0, 30])
-  const imgBlurFilter = useMotionTemplate`blur(${imgBlur}px)`
+  const smooth = useSpring(rawProgress, { stiffness: 80, damping: 22, mass: 0.6 })
 
-  const badgeOpacity = useTransform(progress, [0.40, 0.55], [0, 1])
-  const badgeY = useTransform(progress, [0.40, 0.55], [40, 0])
+  const imgOpacity = useTransform(smooth, [0.25, 0.60], [1, 0])
+  const imgY = useTransform(smooth, [0.25, 0.60], [0, 180])
+  const imgScale = useTransform(smooth, [0.25, 0.60], [1, 0.82])
+  const imgBlur = useTransform(smooth, [0.25, 0.60], [0, 30])
+  const imgFilter = useMotionTemplate`blur(${imgBlur}px)`
 
-  const headingOpacity = useTransform(progress,[0.45,0.75],[0,1])
-  const headingY = useTransform(progress, [0.45, 0.75], [80, 0])
-  const headingBlurVal = useTransform(progress, [0.45, 0.75], [18, 0])
+  const badgeOpacity = useTransform(smooth, [0.40, 0.55], [0, 1])
+  const badgeY = useTransform(smooth, [0.40, 0.55], [40, 0])
+
+  const headingOpacity = useTransform(smooth, [0.45, 0.75], [0, 1])
+  const headingY = useTransform(smooth, [0.45, 0.75], [80, 0])
+  const headingBlurVal = useTransform(smooth, [0.45, 0.75], [18, 0])
   const headingBlur = useMotionTemplate`blur(${headingBlurVal}px)`
 
-  const typingOpacity = useTransform(progress, [0.55, 0.82], [0, 1])
-  const typingY = useTransform(progress, [0.55, 0.82], [30, 0])
+  const typingOpacity = useTransform(smooth, [0.55, 0.82], [0, 1])
+  const typingY = useTransform(smooth, [0.55, 0.82], [30, 0])
 
-  const buttonsOpacity = useTransform(progress, [0.65, 0.90], [0, 1])
-  const buttonsY = useTransform(progress, [0.65, 0.90], [25, 0])
+  const buttonsOpacity = useTransform(smooth, [0.65, 0.90], [0, 1])
+  const buttonsY = useTransform(smooth, [0.65, 0.90], [25, 0])
 
-  const footerOpacity = useTransform(progress, [0.72, 0.90], [0, 1])
+  const footerOpacity = useTransform(smooth, [0.72, 0.90], [0, 1])
+
+  const scrollHintOpacity = useTransform(smooth, [0, 0.15, 0.30], [1, 0.5, 0])
+
+  useEffect(() => {
+    const el = overlayRef.current
+    if (!el) return
+
+    const finish = () => {
+      lockedRef.current = false
+      setTimeout(() => {
+        setVisible(false)
+        setTimeout(() => window.__portfolioLenis?.scrollTo('#about', { offset: -20 }), 100)
+      }, 400)
+    }
+
+    const onWheel = (e) => {
+      if (!lockedRef.current) return
+      if (e.deltaY <= 0) return
+      const next = Math.min(1, totalRef.current + e.deltaY * WHEEL_FACTOR)
+      totalRef.current = next
+      rawProgress.set(next)
+      e.preventDefault()
+      if (next >= 1) finish()
+    }
+
+    const onTouchMove = (e) => {
+      if (!lockedRef.current) return
+      const y = e.touches[0].clientY
+      if (lastY.current === null) { lastY.current = y; return }
+      const delta = lastY.current - y
+      lastY.current = y
+      if (delta <= 0) return
+      const next = Math.min(1, totalRef.current + delta / SENSITIVITY)
+      totalRef.current = next
+      rawProgress.set(next)
+      e.preventDefault()
+      if (next >= 1) finish()
+    }
+
+    const onTouchStart = () => { lastY.current = null }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchstart', onTouchStart)
+    }
+  }, [rawProgress])
+
+  useEffect(() => {
+    return () => { lockedRef.current = false }
+  }, [])
+
+  if (!visible) return null
 
   return (
-    <section ref={heroRef} id="home" style={{ height: '110vh', position: 'sticky' }}>
-      <div style={{ position: 'sticky', top: 0, height: '100vh' }}>
+    <div ref={overlayRef} id="home" style={{ position: 'fixed', inset: 0, zIndex: 50, overflow: 'hidden',
+      background: isDark ? '#0a0a0a' : '#ffffff' }}>
 
-        {/* Background ambient glow */}
-        <div style={{ position: 'absolute', top: '25%', left: '25%', width: '12rem', height: '12rem', borderRadius: '9999px', filter: 'blur(72px)', pointerEvents: 'none', zIndex: 0,
-          background: isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.1)' }} />
-        <div style={{ position: 'absolute', bottom: '33%', right: '25%', width: '14rem', height: '14rem', borderRadius: '9999px', filter: 'blur(72px)', pointerEvents: 'none', zIndex: 0,
-          background: isDark ? 'rgba(6,182,212,0.05)' : 'rgba(6,182,212,0.1)' }} />
+      {/* Background ambient glow */}
+      <div style={{ position: 'absolute', top: '25%', left: '25%', width: '12rem', height: '12rem', borderRadius: '9999px', filter: 'blur(72px)', pointerEvents: 'none', zIndex: 0,
+        background: isDark ? 'rgba(16,185,129,0.06)' : 'rgba(16,185,129,0.1)' }} />
+      <div style={{ position: 'absolute', bottom: '33%', right: '25%', width: '14rem', height: '14rem', borderRadius: '9999px', filter: 'blur(72px)', pointerEvents: 'none', zIndex: 0,
+        background: isDark ? 'rgba(6,182,212,0.05)' : 'rgba(6,182,212,0.1)' }} />
 
-        {/* Text layer (z-index: 1) — behind image, staggered reveal */}
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', zIndex: 1 }}>
-          <div style={{ textAlign: 'center', width: '100%', maxWidth: '24rem' }}>
-            <motion.div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 500, marginBottom: '1.25rem',
-              background: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', color: '#10b981', opacity: badgeOpacity, y: badgeY }}>
-              <span style={{ width: '0.375rem', height: '0.375rem', borderRadius: '9999px', background: '#10b981', animation: 'pulse 2s infinite' }} />
-              Available for opportunities
-            </motion.div>
+      {/* Text layer (z-index: 1) */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', zIndex: 1 }}>
+        <div style={{ textAlign: 'center', width: '100%', maxWidth: '24rem' }}>
+          <motion.div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0.75rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 500, marginBottom: '1.25rem',
+            background: isDark ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.15)', color: '#10b981', opacity: badgeOpacity, y: badgeY }}>
+            <span style={{ width: '0.375rem', height: '0.375rem', borderRadius: '9999px', background: '#10b981', animation: 'pulse 2s infinite' }} />
+            Available for opportunities
+          </motion.div>
 
-            <motion.h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.025em', marginBottom: '1rem',
-              opacity: headingOpacity, y: headingY, filter: headingBlur }}>
-              <span style={{ color: 'var(--tp)' }}>Hi, I&apos;m Salman.</span><br />
-              <span style={{ color: 'var(--ts)' }}>I build</span> <span style={{ color: 'var(--tp)' }}>web</span><br />
-              <span style={{ color: 'var(--ts)' }}>experiences.</span>
-            </motion.h1>
+          <motion.h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 700, lineHeight: 1.08, letterSpacing: '-0.025em', marginBottom: '1rem',
+            opacity: headingOpacity, y: headingY, filter: headingBlur }}>
+            <span style={{ color: 'var(--tp)' }}>Hi, I&apos;m Salman.</span><br />
+            <span style={{ color: 'var(--ts)' }}>I build</span> <span style={{ color: 'var(--tp)' }}>web</span><br />
+            <span style={{ color: 'var(--ts)' }}>experiences.</span>
+          </motion.h1>
 
-            <motion.div style={{ fontSize: '1.125rem', minHeight: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 500, fontFamily: 'var(--font-display)', marginBottom: '1rem',
-              opacity: typingOpacity, y: typingY }}>
-              <TypingText />
-            </motion.div>
+          <motion.div style={{ fontSize: '1.125rem', minHeight: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 500, fontFamily: 'var(--font-display)', marginBottom: '1rem',
+            opacity: typingOpacity, y: typingY }}>
+            <TypingText />
+          </motion.div>
 
-            <motion.div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem',
-              opacity: buttonsOpacity, y: buttonsY }}>
-              <MagneticButton onClick={() => scrollTo('#projects')}
-                style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  background: isDark ? '#f0f0f0' : '#111111', color: isDark ? '#111111' : '#ffffff',
-                  boxShadow: isDark ? '0 4px 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.15)' }}>
-                View Work <ArrowRight style={{ width: '1rem', height: '1rem' }} />
-              </MagneticButton>
-              <MagneticButton onClick={() => scrollTo('#contact')}
-                style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`, color: 'var(--tp)' }}>
-                <Mail style={{ width: '1rem', height: '1rem' }} /> Contact
-              </MagneticButton>
-            </motion.div>
+          <motion.div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', justifyContent: 'center', marginBottom: '1.25rem',
+            opacity: buttonsOpacity, y: buttonsY }}>
+            <MagneticButton onClick={() => scrollTo('#projects')}
+              style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem',
+                background: isDark ? '#f0f0f0' : '#111111', color: isDark ? '#111111' : '#ffffff',
+                boxShadow: isDark ? '0 4px 14px rgba(255,255,255,0.1)' : '0 4px 14px rgba(0,0,0,0.15)' }}>
+              View Work <ArrowRight style={{ width: '1rem', height: '1rem' }} />
+            </MagneticButton>
+            <MagneticButton onClick={() => scrollTo('#contact')}
+              style={{ padding: '0.75rem 1.5rem', borderRadius: '9999px', fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem',
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`, color: 'var(--tp)' }}>
+              <Mail style={{ width: '1rem', height: '1rem' }} /> Contact
+            </MagneticButton>
+          </motion.div>
 
-            <motion.div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, justifyContent: 'center', color: 'var(--tm)',
-              opacity: footerOpacity }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin style={{ width: '0.875rem', height: '0.875rem' }} /> Kerala, India</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><GraduationCap style={{ width: '0.875rem', height: '0.875rem' }} /> MSc Computer Science</span>
-            </motion.div>
-          </div>
+          <motion.div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, justifyContent: 'center', color: 'var(--tm)',
+            opacity: footerOpacity }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin style={{ width: '0.875rem', height: '0.875rem' }} /> Kerala, India</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><GraduationCap style={{ width: '0.875rem', height: '0.875rem' }} /> MSc Computer Science</span>
+          </motion.div>
+
+          {/* Scroll hint */}
+          <motion.div style={{ marginTop: '2rem', opacity: scrollHintOpacity, fontSize: '0.75rem', color: 'var(--tm)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+              <span>scroll</span>
+              <motion.div animate={{ y: [0, 6, 0] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}>
+                <ChevronDown style={{ width: '1rem', height: '1rem' }} />
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
+      </div>
 
-        {/* Image layer (z-index: 2) — cinematic sink and fade */}
-        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, pointerEvents: 'none', opacity: imgOpacity, scale: imgScale, y: imgY, filter: imgBlurFilter }}>
-          <div style={{ position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: '-3rem', borderRadius: '9999px', pointerEvents: 'none',
-              background: isDark ? 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(6,182,212,0.05) 40%, transparent 70%)' : 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.08) 40%, transparent 70%)', filter: 'blur(40px)' }} />
-            <div style={{ position: 'relative', padding: '2px', borderRadius: '1rem',
-              background: isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%)' : 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.4) 100%)' }}>
-              <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '0.85rem', background: isDark ? '#141414' : '#F2F2F2' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/salman_profile.png" alt="Salman Khan" style={{ width: 'min(80vw, 20rem)', height: 'min(80vw, 20rem)', objectFit: 'cover', display: 'block' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.05), transparent, transparent)', pointerEvents: 'none' }} />
+      {/* Image layer (z-index: 2) */}
+      <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, pointerEvents: 'none', opacity: imgOpacity, scale: imgScale, y: imgY, filter: imgFilter }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: '-3rem', borderRadius: '9999px', pointerEvents: 'none',
+            background: isDark ? 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(6,182,212,0.05) 40%, transparent 70%)' : 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.08) 40%, transparent 70%)', filter: 'blur(40px)' }} />
+          <div style={{ position: 'relative', padding: '2px', borderRadius: '1rem',
+            background: isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%)' : 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.4) 100%)' }}>
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '0.85rem', background: isDark ? '#141414' : '#F2F2F2' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/salman_profile.png" alt="Salman Khan" style={{ width: 'min(80vw, 20rem)', height: 'min(80vw, 20rem)', objectFit: 'cover', display: 'block' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.05), transparent, transparent)', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          {/* Floating cards (z-index: 20) */}
+          <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ position: 'absolute', left: '-1rem', bottom: '1.5rem', zIndex: 20 }}>
+            <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+              background: isDark ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.88)', backdropFilter: 'blur(16px)',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+              <div style={{ width: '1.75rem', height: '1.75rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
+                <Code2 style={{ width: '0.875rem', height: '0.875rem', color: '#10b981' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '7px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--tm)' }}>Stack</div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tp)' }}>React & Django</div>
               </div>
             </div>
-
-            {/* Floating cards (z-index: 20) */}
-            <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ position: 'absolute', left: '-1rem', bottom: '1.5rem', zIndex: 20 }}>
-              <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: isDark ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.88)', backdropFilter: 'blur(16px)',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
-                <div style={{ width: '1.75rem', height: '1.75rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
-                  <Code2 style={{ width: '0.875rem', height: '0.875rem', color: '#10b981' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '7px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--tm)' }}>Stack</div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tp)' }}>React & Django</div>
-                </div>
+          </motion.div>
+          <motion.div animate={{ y: [0, 5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+            style={{ position: 'absolute', right: '-0.75rem', top: '2rem', zIndex: 20 }}>
+            <div style={{ padding: '0.375rem 0.625rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem',
+              background: isDark ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.88)', backdropFilter: 'blur(16px)',
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+              <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
+                <Brain style={{ width: '0.625rem', height: '0.625rem', color: '#10b981' }} />
               </div>
-            </motion.div>
-            <motion.div animate={{ y: [0, 5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
-              style={{ position: 'absolute', right: '-0.75rem', top: '2rem', zIndex: 20 }}>
-              <div style={{ padding: '0.375rem 0.625rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.375rem',
-                background: isDark ? 'rgba(20,20,20,0.92)' : 'rgba(255,255,255,0.88)', backdropFilter: 'blur(16px)',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
-                <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.1) 100%)' }}>
-                  <Brain style={{ width: '0.625rem', height: '0.625rem', color: '#10b981' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '7px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--tm)' }}>Specialty</div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tp)' }}>Clean Code</div>
-                </div>
+              <div>
+                <div style={{ fontSize: '7px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: 'var(--tm)' }}>Specialty</div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--tp)' }}>Clean Code</div>
               </div>
-            </motion.div>
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
 
-      </div>
-    </section>
+    </div>
   )
 }
 
