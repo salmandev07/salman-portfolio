@@ -504,6 +504,7 @@ const ControlledScene = ({ isDark }) => {
   const totalRef = useRef(0)
   const lastY = useRef(null)
   const lockedRef = useRef(true)
+  const completedRef = useRef(false)
   const rawProgress = useMotionValue(0)
   const scrollTo = (sel) => window.__portfolioLenis?.scrollTo(sel, { offset: -20 })
 
@@ -511,7 +512,6 @@ const ControlledScene = ({ isDark }) => {
   const WHEEL_FACTOR = 0.002
 
   const smooth = useSpring(rawProgress, { stiffness: 80, damping: 22, mass: 0.6 })
-
   const imgOpacity = useTransform(smooth, [0, 1], [1, 0])
   const imgY = useTransform(smooth, [0.25, 0.60], [0, 180])
   const imgScale = useTransform(smooth, [0.25, 0.60], [1, 0.82])
@@ -554,6 +554,7 @@ const ControlledScene = ({ isDark }) => {
     if (!el) return
 
     const onWheel = (e) => {
+      if (completedRef.current) return
       if (!lockedRef.current) return
       if (e.deltaY <= 0) return
       const next = Math.min(1, totalRef.current + e.deltaY * WHEEL_FACTOR)
@@ -561,12 +562,16 @@ const ControlledScene = ({ isDark }) => {
       rawProgress.set(next)
       e.preventDefault()
       if (next >= 1) {
-        lockedRef.current = false
-        setIntercepting(false)
+          completedRef.current = true
+          lockedRef.current = false
+          totalRef.current = 1
+          rawProgress.set(1)
+          setIntercepting(false)
       }
     }
 
     const onTouchMove = (e) => {
+      if (completedRef.current) return
       if (!lockedRef.current) return
       const y = e.touches[0].clientY
       if (lastY.current === null) { lastY.current = y; return }
@@ -578,8 +583,11 @@ const ControlledScene = ({ isDark }) => {
       rawProgress.set(next)
       e.preventDefault()
       if (next >= 1) {
+        completedRef.current = true
         lockedRef.current = false
         setIntercepting(false)
+        rawProgress.set(1)
+        totalRef.current = 1
       }
     }
 
@@ -601,12 +609,16 @@ const ControlledScene = ({ isDark }) => {
 
   useEffect(() => {
     const reset = () => {
-      if (window.scrollY <= 20 && !lockedRef.current) {
-        lockedRef.current = true
-        totalRef.current = 0
-        rawProgress.set(0)
-        setIntercepting(true)
-      }
+      if (
+    window.scrollY <= 5 &&
+            completedRef.current
+        ) {
+            completedRef.current = false
+            lockedRef.current = true
+            totalRef.current = 0
+            rawProgress.set(0)
+            setIntercepting(true)
+        }
     }
     window.addEventListener('scroll', reset, { passive: true })
     return () => window.removeEventListener('scroll', reset)
@@ -682,7 +694,7 @@ const ControlledScene = ({ isDark }) => {
         </div>
 
         {/* Image layer (z-index: 2) */}
-        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, pointerEvents: 'none', opacity: imgOpacity, scale: imgScale, y: imgY, filter: imgFilter }}>
+        <motion.div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, pointerEvents: 'none', opacity: completedRef.current ? 0 : imgOpacity, scale: imgScale, y: imgY, filter: imgFilter }}>
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', inset: '-3rem', borderRadius: '9999px', pointerEvents: 'none',
               background: isDark ? 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, rgba(6,182,212,0.05) 40%, transparent 70%)' : 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, rgba(6,182,212,0.08) 40%, transparent 70%)', filter: 'blur(40px)' }} />
