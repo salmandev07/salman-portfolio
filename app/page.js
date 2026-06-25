@@ -303,7 +303,7 @@ const Navbar = () => {
   }, [])
   return (
     <motion.nav initial={{ y: -20, opacity: 0, filter: 'blur(2px)' }} animate={{ y: 0, opacity: 1, filter: 'blur(0px)' }} transition={SPRING}
-      className={`fixed top-0 left-0 right-0 z-50 theme-transition ${
+      className={`fixed top-0 left-0 right-0 z-[100000] theme-transition ${
         scrolled ? 'backdrop-blur-md border-b shadow-sm' : ''
       }`}
       style={{ background: scrolled ? (isDark ? 'rgba(20,20,20,0.8)' : 'rgba(255,255,255,0.8)') : 'transparent', borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }}>
@@ -508,10 +508,10 @@ const ControlledScene = ({ isDark }) => {
   const rawProgress = useMotionValue(0)
   const scrollTo = (sel) => window.__portfolioLenis?.scrollTo(sel, { offset: -20 })
 
-  const SENSITIVITY = 300
-  const WHEEL_FACTOR = 0.002
+  const SENSITIVITY = 200
+  const WHEEL_FACTOR = 0.003
 
-  const smooth = useSpring(rawProgress, { stiffness: 80, damping: 22, mass: 0.6 })
+  const smooth = useSpring(rawProgress, { stiffness: 100, damping: 28, mass: 0.5 })
   const imgOpacity = useTransform(smooth, [0, 1], [1, 0])
   const imgY = useTransform(smooth, [0.25, 0.60], [0, 180])
   const imgScale = useTransform(smooth, [0.25, 0.60], [1, 0.82])
